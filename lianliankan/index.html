@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>苹果风连连看</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    .game-container {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2);
+      padding: 30px;
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+      margin-top: 20px;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      color: #333;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 15px;
+      border-radius: 15px;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .stat-item {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #ff6b6b;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: #888;
+    }
+    
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+      margin: 20px auto;
+      max-width: 400px;
+      background: rgba(240, 240, 240, 0.7);
+      padding: 15px;
+      border-radius: 15px;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .tile {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      background: white;
+      user-select: none;
+    }
+    
+    .tile:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .tile.selected {
+      transform: scale(0.9);
+      box-shadow: 0 0 0 3px #4CAF50, 0 6px 8px rgba(0, 0, 0, 0.15);
+      background: #e8f5e9;
+    }
+    
+    .tile.matched {
+      opacity: 0;
+      transform: scale(0);
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    button {
+      background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+    
+    button:active {
+      transform: translateY(1px);
+    }
+    
+    .message {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.7);
+      font-weight: 500;
+      min-height: 25px;
+    }
+    
+    .win-message {
+      background: linear-gradient(45deg, #43cea2, #185a9d);
+      color: white;
+      font-size: 1.2rem;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .instructions {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 15px;
+      text-align: left;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    
+    .instructions h3 {
+      margin-bottom: 10px;
+      color: #333;
+      text-align: center;
+    }
+    
+    .instructions ul {
+      padding-left: 20px;
+    }
+    
+    .instructions li {
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1>🍎 苹果风连连看</h1>
+    
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-value" id="moves">0</div>
+        <div class="stat-label">步数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="time">0s</div>
+        <div class="stat-label">时间</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="pairs">0</div>
+        <div class="stat-label">配对</div>
+      </div>
+    </div>
+    
+    <div class="game-board" id="gameBoard"></div>
+    
+    <div class="message" id="message">选择两个相同的图标进行消除</div>
+    
+    <div class="controls">
+      <button id="restartBtn">🔄 重新开始</button>
+      <button id="hintBtn">💡 提示</button>
+    </div>
+    
+    <div class="instructions">
+      <h3>游戏规则</h3>
+      <ul>
+        <li>点击两个相同的图标进行匹配</li>
+        <li>匹配的路径最多只能有两个拐角</li>
+        <li>消除所有图标即可获胜</li>
+        <li>使用提示按钮获取帮助</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    class LinkGame {
+      constructor() {
+        this.boardSize = 8;
+        this.grid = [];
+        this.selectedTile = null;
+        this.moves = 0;
+        this.time = 0;
+        this.pairsFound = 0;
+        this.totalPairs = (this.boardSize * this.boardSize) / 2;
+        this.gameStarted = false;
+        this.timerInterval = null;
+        
+        this.icons = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍑', '🍒', '🥝', '🍍', '🥥', '🥭', '🥑'];
+        
+        this.init();
+      }
+      
+      init() {
+        this.createBoard();
+        this.setupEventListeners();
+        this.updateStats();
+      }
+      
+      createBoard() {
+        const gameBoard = document.getElementById('gameBoard');
+        gameBoard.innerHTML = '';
+        this.grid = [];
+        
+        // 创建图标数组（每个图标出现两次）
+        let iconsArray = [];
+        const iconCount = (this.boardSize * this.boardSize) / 2;
+        for (let i = 0; i < iconCount; i++) {
+          iconsArray.push(this.icons[i % this.icons.length]);
+          iconsArray.push(this.icons[i % this.icons.length]);
+        }
+        
+        // 随机打乱图标数组
+        this.shuffleArray(iconsArray);
+        
+        // 创建网格
+        for (let row = 0; row < this.boardSize; row++) {
+          this.grid[row] = [];
+          for (let col = 0; col < this.boardSize; col++) {
+            const tileValue = iconsArray.pop();
+            this.grid[row][col] = {
+              value: tileValue,
+              element: null,
+              matched: false
+            };
+            
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.textContent = tileValue;
+            tile.dataset.row = row;
+            tile.dataset.col = col;
+            
+            gameBoard.appendChild(tile);
+            this.grid[row][col].element = tile;
+            
+            tile.addEventListener('click', (e) => this.handleTileClick(row, col));
+          }
+        }
+      }
+      
+      shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+      }
+      
+      handleTileClick(row, col) {
+        if (!this.gameStarted) {
+          this.startTimer();
+          this.gameStarted = true;
+        }
+        
+        const tile = this.grid[row][col];
+        
+        // 如果已经匹配或已被选中，则忽略
+        if (tile.matched) return;
+        
+        if (tile.element.classList.contains('selected')) {
+          // 取消选择
+          tile.element.classList.remove('selected');
+          this.selectedTile = null;
+          this.showMessage('取消选择');
+          return;
+        }
+        
+        if (this.selectedTile === null) {
+          // 选择第一个图标
+          this.selectedTile = { row, col };
+          tile.element.classList.add('selected');
+          this.showMessage('已选择第一个图标，再选择一个相同图标进行匹配');
+        } else {
+          // 选择第二个图标
+          const prevRow = this.selectedTile.row;
+          const prevCol = this.selectedTile.col;
+          
+          if (prevRow === row && prevCol === col) {
+            // 点击同一个图标，取消选择
+            this.grid[prevRow][prevCol].element.classList.remove('selected');
+            this.selectedTile = null;
+            this.showMessage('取消选择');
+            return;
+          }
+          
+          // 检查是否可以匹配
+          if (this.canMatch(prevRow, prevCol, row, col)) {
+            // 匹配成功
+            this.grid[prevRow][prevCol].matched = true;
+            this.grid[row][col].matched = true;
+            
+            this.grid[prevRow][prevCol].element.classList.add('matched');
+            this.grid[row][col].element.classList.add('matched');
+            
+            this.grid[prevRow][prevCol].element.classList.remove('selected');
+            this.selectedTile = null;
+            
+            this.pairsFound++;
+            this.moves++;
+            this.updateStats();
+            
+            this.showMessage('匹配成功！');
+            
+            // 检查是否获胜
+            if (this.pairsFound === this.totalPairs) {
+              this.endGame(true);
+            }
+          } else {
+            // 匹配失败
+            this.showMessage('无法匹配，请选择路径上拐角不超过2个的图标');
+          }
+        }
+      }
+      
+      canMatch(row1, col1, row2, col2) {
+        // 检查图标是否相同
+        if (this.grid[row1][col1].value !== this.grid[row2][col2].value) {
+          return false;
+        }
+        
+        // 不能选择同一个位置
+        if (row1 === row2 && col1 === col2) {
+          return false;
+        }
+        
+        // 检查路径
+        return this.checkPath(row1, col1, row2, col2);
+      }
+      
+      checkPath(row1, col1, row2, col2) {
+        // 如果在同一行
+        if (row1 === row2) {
+          return this.checkHorizontalPath(row1, col1, col2);
+        }
+        
+        // 如果在同一列
+        if (col1 === col2) {
+          return this.checkVerticalPath(col1, row1, row2);
+        }
+        
+        // 检查一个拐角的路径
+        if (this.isValidCornerPath(row1, col1, row2, col2)) {
+          return true;
+        }
+        
+        // 检查两个拐角的路径
+        if (this.isValidTwoCornerPath(row1, col1, row2, col2)) {
+          return true;
+        }
+        
+        return false;
+      }
+      
+      checkHorizontalPath(row, col1, col2) {
+        const start = Math.min(col1, col2);
+        const end = Math.max(col1, col2);
+        
+        for (let col = start + 1; col < end; col++) {
+          if (!this.grid[row][col].matched) {
+            return false;
+          }
+        }
+        return true;
+      }
+      
+      checkVerticalPath(col, row1, row2) {
+        const start = Math.min(row1, row2);
+        const end = Math.max(row1, row2);
+        
+        for (let row = start + 1; row < end; row++) {
+          if (!this.grid[row][col].matched) {
+            return false;
+          }
+        }
+        return true;
+      }
+      
+      isValidCornerPath(row1, col1, row2, col2) {
+        // 通过一个拐角连接 (row1, col1) -> (row1, col2) -> (row2, col2)
+        if (this.grid[row1][col2].matched && 
+            this.checkHorizontalPath(row1, Math.min(col1, col2), Math.max(col1, col2)) &&
+            this.checkVerticalPath(col2, Math.min(row1, row2), Math.max(row1, row2))) {
+          return true;
+        }
+        
+        // 通过一个拐角连接 (row1, col1) -> (row2, col1) -> (row2, col2)
+        if (this.grid[row2][col1].matched && 
+            this.checkVerticalPath(col1, Math.min(row1, row2), Math.max(row1, row2)) &&
+            this.checkHorizontalPath(row2, Math.min(col1, col2), Math.max(col1, col2))) {
+          return true;
+        }
+        
+        return false;
+      }
+      
+      isValidTwoCornerPath(row1, col1, row2, col2) {
+        // 检查两个拐角的路径
+        // 从 (row1, col1) 到 (row1, x) 到 (row2, x) 到 (row2, col2)
+        for (let x = 0; x < this.boardSize; x++) {
+          if (x !== col1 && x !== col2 && this.grid[row1][x].matched && this.grid[row2][x].matched) {
+            if (this.checkHorizontalPath(row1, Math.min(col1, x), Math.max(col1, x)) &&
+                this.checkHorizontalPath(row2, Math.min(col2, x), Math.max(col2, x)) &&
+                this.checkVerticalPath(x, Math.min(row1, row2), Math.max(row1, row2))) {
+              return true;
+            }
+          }
+        }
+        
+        // 从 (row1, col1) 到 (x, col1) 到 (x, col2) 到 (row2, col2)
+        for (let x = 0; x < this.boardSize; x++) {
+          if (x !== row1 && x !== row2 && this.grid[x][col1].matched && this.grid[x][col2].matched) {
+            if (this.checkVerticalPath(col1, Math.min(row1, x), Math.max(row1, x)) &&
+                this.checkVerticalPath(col2, Math.min(row2, x), Math.max(row2, x)) &&
+                this.checkHorizontalPath(x, Math.min(col1, col2), Math.max(col1, col2))) {
+              return true;
+            }
+          }
+        }
+        
+        return false;
+      }
+      
+      showMessage(text) {
+        const messageEl = document.getElementById('message');
+        messageEl.textContent = text;
+        messageEl.classList.remove('win-message');
+      }
+      
+      showWinMessage() {
+        const messageEl = document.getElementById('message');
+        messageEl.textContent = `恭喜获胜！用时 ${this.time} 秒，共 ${this.moves} 步`;
+        messageEl.classList.add('win-message');
+      }
+      
+      startTimer() {
+        this.timerInterval = setInterval(() => {
+          this.time++;
+          this.updateStats();
+        }, 1000);
+      }
+      
+      stopTimer() {
+        if (this.timerInterval) {
+          clearInterval(this.timerInterval);
+          this.timerInterval = null;
+        }
+      }
+      
+      endGame(isWin) {
+        this.stopTimer();
+        if (isWin) {
+          this.showWinMessage();
+        }
+      }
+      
+      resetGame() {
+        this.stopTimer();
+        this.selectedTile = null;
+        this.moves = 0;
+        this.time = 0;
+        this.pairsFound = 0;
+        this.gameStarted = false;
+        this.createBoard();
+        this.updateStats();
+        this.showMessage('选择两个相同的图标进行消除');
+      }
+      
+      giveHint() {
+        // 简单的提示：找出一组可以匹配的图标
+        for (let row1 = 0; row1 < this.boardSize; row1++) {
+          for (let col1 = 0; col1 < this.boardSize; col1++) {
+            if (this.grid[row1][col1].matched) continue;
+            
+            for (let row2 = row1; row2 < this.boardSize; row2++) {
+              const startCol = (row1 === row2) ? col1 + 1 : 0;
+              for (let col2 = startCol; col2 < this.boardSize; col2++) {
+                if (this.grid[row2][col2].matched) continue;
+                
+                if (this.canMatch(row1, col1, row2, col2)) {
+                  // 高亮这两个图标
+                  this.grid[row1][col1].element.style.boxShadow = '0 0 0 3px #FFD700, 0 6px 8px rgba(0, 0, 0, 0.15)';
+                  this.grid[row2][col2].element.style.boxShadow = '0 0 0 3px #FFD700, 0 6px 8px rgba(0, 0, 0, 0.15)';
+                  
+                  // 2秒后移除高亮
+                  setTimeout(() => {
+                    this.grid[row1][col1].element.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                    this.grid[row2][col2].element.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                  }, 2000);
+                  
+                  this.showMessage('提示：已高亮一组可匹配的图标');
+                  return;
+                }
+              }
+            }
+          }
+        }
+        this.showMessage('没有找到可匹配的图标');
+      }
+      
+      updateStats() {
+        document.getElementById('moves').textContent = this.moves;
+        document.getElementById('time').textContent = this.time + 's';
+        document.getElementById('pairs').textContent = this.pairsFound;
+      }
+      
+      setupEventListeners() {
+        document.getElementById('restartBtn').addEventListener('click', () => {
+          this.resetGame();
+        });
+        
+        document.getElementById('hintBtn').addEventListener('click', () => {
+          this.giveHint();
+        });
+      }
+    }
+    
+    // 启动游戏
+    window.addEventListener('DOMContentLoaded', () => {
+      new LinkGame();
+    });
+  </script>
+</body>
+</html>
